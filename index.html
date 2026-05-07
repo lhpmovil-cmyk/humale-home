@@ -10,7 +10,6 @@
 <link rel="apple-touch-icon" href="icon-512.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="manifest" href="manifest.json">
 <title>Humale Home</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -551,7 +550,6 @@ function addEvento(){
   if(hora) item.hora=hora;
   if(desc) item.desc=desc;
   db.ref('agenda').push(item);
-  scheduleNotification(titulo, fecha, hora);
   document.getElementById('in-agenda-titulo').value='';
   document.getElementById('in-agenda-fecha').value='';
   document.getElementById('in-agenda-hora').value='';
@@ -971,62 +969,7 @@ var today2=new Date().toISOString().split('T')[0];
 });
 document.getElementById('in-agenda-fecha').value=today2;
 
-// SERVICE WORKER + NOTIFICACIONES
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js').then(function(reg){
-    console.log('SW registrado');
-  }).catch(function(e){ console.log('SW error', e); });
-}
 
-// Pedir permiso notificaciones
-function requestNotifPermission(){
-  if('Notification' in window && Notification.permission==='default'){
-    Notification.requestPermission();
-  }
-}
-requestNotifPermission();
-
-// Programar alarma para un evento
-function scheduleNotification(titulo, fechaStr, horaStr){
-  if(!horaStr) return;
-  if(!('Notification' in window) || Notification.permission!=='granted') return;
-  var dt = new Date(fechaStr+'T'+horaStr+':00');
-  var now = new Date();
-  var diff = dt.getTime() - now.getTime();
-  if(diff <= 0) return;
-  // Alarma 15 min antes
-  var diff15 = diff - 15*60*1000;
-  if(diff15 > 0){
-    setTimeout(function(){
-      new Notification('Humale Home — En 15 min', {
-        body: titulo,
-        icon: './icon-192.png',
-        badge: './icon-192.png',
-        vibrate: [200, 100, 200]
-      });
-    }, diff15);
-  }
-  // Alarma en el momento
-  setTimeout(function(){
-    new Notification('Humale Home — Ahora', {
-      body: titulo,
-      icon: './icon-192.png',
-      badge: './icon-192.png',
-      vibrate: [300, 100, 300, 100, 300]
-    });
-  }, diff);
-}
-
-// Reprogramar todas las alarmas al cargar
-db.ref('agenda').once('value', function(snap){
-  var eventos = snap.val() || {};
-  var todayStr = new Date().toISOString().split('T')[0];
-  Object.values(eventos).forEach(function(ev){
-    if(ev.fecha >= todayStr && ev.hora){
-      scheduleNotification(ev.titulo, ev.fecha, ev.hora);
-    }
-  });
-});
 </script>
 </body>
 </html>
