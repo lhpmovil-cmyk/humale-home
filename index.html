@@ -223,6 +223,15 @@ textarea{resize:none;height:70px;font-size:13px}
 .cd-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.03)}
 .cd-btn{width:19px;height:19px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);background:transparent;flex-shrink:0;cursor:pointer}
 .cd-btn.on{background:var(--success);border-color:var(--success)}
+
+.td{display:none;margin:0 14px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.td.open{display:block}
+.td-top{padding:8px 14px;display:flex;justify-content:space-between;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-faint)}
+.td-x{background:none;border:none;color:var(--text-faint);cursor:pointer}
+.td-sec{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);padding:10px 14px 4px;display:block;border-top:1px solid var(--border)}
+.td-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.td-btn{width:19px;height:19px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);background:transparent;flex-shrink:0;cursor:pointer}
+.td-alta{font-size:9px;padding:2px 6px;border-radius:50px;background:rgba(224,112,112,0.14);color:var(--danger)}
 </style>
 </head>
 <body>
@@ -241,7 +250,7 @@ textarea{resize:none;height:70px;font-size:13px}
   <div class="week-banner">
     <div class="week-label">📅 Esta semana</div>
     <div class="week-stats">
-      <div class="wstat" onclick="switchTab('hogar')"><div class="wstat-num" id="sPend">—</div><div class="wstat-lbl">Tareas</div></div>
+      <div class="wstat" onclick="tdOpen()"><div class="wstat-num" id="sPend">—</div><div class="wstat-lbl">Tareas</div></div>
       <div class="wstat-sep"></div>
       <div class="wstat" onclick="switchTab('urgentes')"><div class="wstat-num" id="sUrg">—</div><div class="wstat-lbl">Urgentes</div></div>
       <div class="wstat-sep"></div>
@@ -252,8 +261,7 @@ textarea{resize:none;height:70px;font-size:13px}
     <div class="week-list" id="urgList"></div>
   </div>
 
-  
-  <div class="cd" id="cd"><div class="cd-top"><span id="cdInfo"></span><button class="cd-x" onclick="cdClose()">cerrar</button></div><div id="cdItems"></div></div>
+    <div class="cd" id="cd"><div class="cd-top"><span id="cdInfo"></span><button class="cd-x" onclick="cdClose()">cerrar</button></div><div id="cdItems"></div></div>
 <div class="tabs-scroll">
     <div class="tabs">
       <button class="tab t-notas active" id="tb-notas" onclick="switchTab('notas')">📌 Notas <span class="tab-n" id="cn-notas">0</span></button>
@@ -875,6 +883,45 @@ function cdOpen(){var d=document.getElementById("cd");d.classList.toggle("open")
 function cdClose(){document.getElementById("cd").classList.remove("open");}
 function cdRender(){var items=state.compra;var entries=[];Object.keys(items).forEach(function(id){entries.push({id:id,v:items[id]});});entries.sort(function(a,b){return a.v.done===b.v.done?0:a.v.done?1:-1;});var dn=entries.filter(function(e){return e.v.done;}).length;document.getElementById("cdInfo").textContent=(entries.length-dn)+" pendientes / "+dn+" comprados";if(!entries.length){document.getElementById("cdItems").innerHTML="<div style='padding:14px;text-align:center;color:var(--text-faint)'>Lista vacia</div>";return;}var rows="";entries.forEach(function(e){var bc=e.v.done?"cd-btn on":"cd-btn";rows+="<div class='cd-row'><button class='"+bc+"' onclick='cdToggle(&quot;"+e.id+"&quot;,"+e.v.done+")' ></button><span style='font-size:13px;color:var(--text)'>"+esc(e.v.name)+"</span></div>";});document.getElementById("cdItems").innerHTML=rows;}
 function cdToggle(id,cur){db.ref("compra/"+id).update({done:!cur});setTimeout(cdRender,150);}
+
+function tdOpen(){
+  var d=document.getElementById("td");
+  d.classList.toggle("open");
+  if(d.classList.contains("open")) tdRender();
+}
+function tdClose(){
+  document.getElementById("td").classList.remove("open");
+}
+function tdRender(){
+  console.log("tdRender called");
+  console.log("state.hogar:", state.hogar);
+  var total=0;
+  var html="";
+  var secKeys=["hogar","nino","otras"];
+  var secNames={"hogar":"Hogar","nino":"Nino","otras":"Otras"};
+  secKeys.forEach(function(sec){
+    var secState=state[sec];
+    console.log("sec:", sec, "state:", secState);
+    if(!secState) return;
+    var entries=[];
+    Object.keys(secState).forEach(function(id){
+      if(!secState[id].done) entries.push({id:id,v:secState[id]});
+    });
+    if(!entries.length) return;
+    total+=entries.length;
+    html+='<span class="td-sec">'+secNames[sec]+'</span>';
+    entries.forEach(function(e){
+      html+='<div class="td-row"><button class="td-btn"></button><span style="font-size:13px;color:var(--text);flex:1">'+esc(e.v.name)+'</span></div>';
+    });
+  });
+  console.log("total:", total, "html:", html);
+  document.getElementById("tdInfo").textContent=total+" tareas pendientes";
+  document.getElementById("tdItems").innerHTML=total?html:'<div style="padding:14px;text-align:center;color:var(--text-faint)">Todo al dia</div>';
+}
+function tdDone(sec,id){
+  db.ref(sec+"/"+id).update({done:true});
+  setTimeout(tdRender,150);
+}
 </script>
 </body>
 </html>
